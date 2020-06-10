@@ -16,10 +16,10 @@
 ### 1-x. MAPEループ
 オートスケーリングの一連の挙動は大きく4つのフェーズに分けることができ、これらのフェーズが繰り返し実行されることによって実現される。
 
-- Monitoring
-- Analysis
-- Planning
-- Execution
+1. Monitoring
+2. Analysis
+3. Planning
+4. Execution
 
 
 ### 1-x. オートスケーリングにおける一般的な課題
@@ -32,11 +32,37 @@
 > 原文には他にも多くの課題が紹介されていますが、ここではKubernetesで特に関わりが深い課題をピックアップしています。
 
 #### メトリクスの選定
+メトリクスの設定で注意すべきこと
 
 - 現実の負荷を反映していること
+    - アプリケーションの特性、要求された機能の特性などによって、メトリクスの出方に違いがでる
 - オートスケーリングで対応可能な負荷を反映していること
+    - 当然ながら、オートスケーリングで対応可能な負荷を反映したメトリクスでないとどうしようもない
+- スケーリングすべき対象が分かっていること
+    - 負荷の観測後、最初にボトルネックがとなる箇所がわかっている必要がある。そうでないとそこを狙ってオートスケールするのが難しい
+
+候補となるメトリクス（案）は以下。
+
+- Saturation
+    - CPU利用率
+    - メモリ利用量
+- トラフィック量(rps)
+- レイテンシ
+    - レイテンシそのもの
+    - レイテンシのxxパーセンタイル(?)
+
+これら以外に、キューに入っているメッセージ数などのようにアプリケーション固有のメトリクスを利用するという方向性もあるようだ。
+
+複数のメトリクスを組み合わせるという方法もあるようだが、運用を難しくするのであまり推奨されないらしい。
+無闇な複雑化はダメ、ゼッタイ。
+
+> :notebook: 【注】<br>
+> どのメトリクスが有効かは要検証
+
 
 #### オシレーション
+メトリクスの上下に伴って、スケールイン/アウトが短期間にくらい返されてしまう状況のこと。
+これを防ぐためにメトリクスに対する感度を調整する必要があるが、一般的にスケーリングの速度とのトレードオフとなる。
 
 
 <br>
@@ -45,13 +71,14 @@
 ---
 
 ### 2-x. Horizontal Pod Autoscalerのアーキテクチャ
-
+![](./images/hpa-01.png)
 
 ### 2-x. KubernetesにおけるMAPEループ
+（工事中）
 
 
 ### 2-x. HPAリソースを読解してみる
-HorizontalPodAutoScaler.autoscaling.v2beta2のmanifestを見てみよう。
+HorizontalPodAutoScaler.autoscaling.v2beta2のmanifestを見てみる。
 
 ```
 apiVersion: autoscaling/v2beta2
@@ -80,22 +107,24 @@ spec:
         value: 300m
 ```
 
-| # | 説明
-| - | -
-| 1 |スケールさせる対象のオブジェクトを特定するフィールド。`spec.metrics.type: [Pods|Resource]` の場合、メトリクスを収集する対象のPodを特定するためにも使われる
-| 2 |収集するメトリクスと、スケーリングをトリガする閾値の定義
-| 3 |メトリクス種別（詳細は後述）
-| 4 |メトリクス種別に応じた定義を記述する箇所。スケーリングのトリガとして利用するメトリクスと、閾値を指定
+| #   | 説明
+| -   | -
+| (1) |スケールさせる対象のオブジェクトを特定するフィールド。`spec.metrics.type: [Pods|Resource]` の場合、メトリクスを収集する対象のPodを特定するためにも使われる
+| (2) |収集するメトリクスと、スケーリングをトリガする閾値の定義
+| (3) |メトリクス種別（詳細は後述）
+| (4) |メトリクス種別に応じた定義を記述する箇所。スケーリングのトリガとして利用するメトリクスと、閾値を指定
 
 #### メトリクス種別
 
 - Resource:
-    - スケーリング対象の各PodでResource Limits/Requestsに指定されたメトリクス
+    - スケーリング対象の各Podの、CPUまたはメモリ消費量を利用してスケーリングする
     - `Pods` を使った方法よりも高機能なスケーリング判定ロジックを利用することができる
+    - メトリクスはAggregation Layerを使って呼び出されるMetrics-Serverから取得される
 - Pods: 
-    - Podから収集されるメトリクス
+    - スケーリング対象の各Podの、カスタムメトリクスを利用してスケーリングする
     - メトリクスを提供するエンドポイントをそのPod自身に作成して、それを利用する
     - 対象のPod群の平均値が閾値との比較に使われる
+    - 実際の値は、Aggregation Layerを使って呼び出されるWebhookから取得される（このWebhookを用意しておく必要がある）
 - Object: 
     - Kubernetesオブジェクトに紐付いたメトリクス（例: あるIngressリソース）
     - メトリクスの値は、API Serverの特定のKubernetesオブジェクトに紐付いたパスを叩くことで取得する
@@ -103,6 +132,41 @@ spec:
 - External:
     - Kubernetesオブジェクトと関連しないメトリクスソース
     - 実際の値は、Aggregation Layerを使って呼び出されるWebhookから取得される（このWebhookを用意しておく必要がある）
+
+### 2-x. HPAのためのkube-controller-managerパラメータ
+HPAの周りのパラメータは以下の通り。
+これらを調整して
+
+- --horizontal-pod-autoscaler-cpu-initialization-period (duration)
+    - Default: 5m0s
+    - Pod起動後、CPU消費のサンプリングがスキップされる時間
+- --horizontal-pod-autoscaler-downscale-stabilization (duration)
+    - Default: 5m0s
+    - The period for which autoscaler will look backwards and not scale down below any recommendation it made during that period.
+    - （スケールアウト直後のスケールインを待つ時間と思われる）
+- --horizontal-pod-autoscaler-initial-readiness-delay (duration)
+    - Default: 30s
+    - Podが起動したあと readiness の変化が、初期準備状態として扱われる期間
+- --horizontal-pod-autoscaler-sync-period (duration)
+    - Default: 15s
+    - Horizontal Pod AutoscalerによるControll Loopの時間間隔
+- --horizontal-pod-autoscaler-tolerance (float)
+    - Default: 0.1
+    - スケーリングの実行が判断される、実際のメトリックに対する希望メトリック比の最小変化量（1.0から）。
+- --horizontal-pod-autoscaler-upscale-delay
+
+
+### 2-x. カスタムメトリクスの実装の例
+kubernetes/metricリポジトリ配下に、[Custom Metric API Serverの実装](https://github.com/kubernetes/metrics/blob/master/IMPLEMENTATIONS.md)が紹介されている。
+
+- Prometheus Adapter
+    - PrometheusのメトリクスをCustom Metric API Serverとして利用するアダプター
+- Kube Metrics Adapter
+    - Prometheusの他、Kubernetes外のメトリクス供給源にも対応したアダプター
+
+- [Custom Metrics Adapter Server Boilerplate](https://github.com/kubernetes-sigs/custom-metrics-apiserver)
+    - Custom Metric API Serverを実装するためのライブラリ
+
 
 #### 【参考】 Aggregation Layer
 API Server経由で自作のCustom Metrics API Serverにアクセスさせるには、Aggregation Layerという機能を利用する。
@@ -273,6 +337,8 @@ etcd-kind-control-plane                      21m          32Mi
     - [Design Proposals](https://github.com/kubernetes/community/tree/master/contributors/design-proposals/instrumentation)
     - [Custom Metrics Adapter Server Boilerplate](https://github.com/kubernetes-sigs/custom-metrics-apiserver)
     - [Use an HTTP Proxy to Access the Kubernetes API](https://kubernetes.io/docs/tasks/access-kubernetes-api/http-proxy-access-api/)
+    - [ISSUE: Add flag --horizontal-pod-autoscaler-initial-readiness-delay](https://github.com/kubernetes/kops/pull/6580)
+    - [kube-controller-manager](https://kubernetes.io/docs/reference/command-line-tools-reference/kube-controller-manager/)
 
 - Kubernetes API Reference
     - [HorizontalPodAutoscaler v2beta2 autoscaling](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#horizontalpodautoscaler-v2beta2-autoscaling)
