@@ -1,5 +1,10 @@
-アルパカでもわかる Horizontal Pod Autoscaler
-===
+---
+title: "アルパカでもわかるHorizontal Pod Autoscaler"
+emoji: "🦙"
+type: "tech"
+topics: ["kubernetes", "autoscaling"]
+published: false
+---
 
 目次
 ---

@@ -1,7 +1,11 @@
-alpaca-notes
+アルパカの自学習ノート
 ===
-アルパカの自学習ノート（パブリック版）
+アルパカの自学習ノートのリポジトリです。
+公開しても差し支えないと思ったものは [zenn](https://zenn.dev/hhiroshell) に上げていきます。
 
-- ノートに書こうと思ったことはIssueに登録
-- `.md` でノートを書く
-- 公開しても差し支えないと思ったものは、ブログなどに載せる
+<br>
+
+---
+
+👇How to use Zenn
+https://zenn.dev/zenn/articles/zenn-cli-guide
