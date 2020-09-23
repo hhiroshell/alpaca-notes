@@ -101,11 +101,13 @@ SIGTERMの後、タイムアウト時間が経過してもコンテナが終了�
 <!-- 図 -->
 
 ### 2-b. endpoints controllerとkube-proxyによるサービスアウト
-Podリソースに `deletionTimestamp` が設定されたことをendpoints controllerが検知すると、対象のPodにルーティングするように設定されているServiceリソースから、Podのendpointを除外します。
+Podリソースに `deletionTimestamp` が設定されたことをendpoints controllerが検知すると、対象のPodにルーティングするように設定されているServiceリソースから、Podのendpointを除外します。[^3]
 さらに、Serviceリソースからendpointが除外されると、kube-proxyがNodeのiptableを更新します。
 これによってPodに対して新規TCPコネクションが作成されないようになります（サービスアウト）。
 
 <!-- 図 -->
+
+[^3]: https://github.com/kubernetes/kubernetes/blob/v1.18.9/pkg/controller/endpoint/endpoints_controller.go#L398-L401
 
 ### 2-c. Ownerリソースによる管理からの除外
 Ownerリソースは、あるリソースに対してそれを管理する関係にある上位のリソースです。Podリソースの場合、ReplicaSet、DaemonSetなどが該当します。
