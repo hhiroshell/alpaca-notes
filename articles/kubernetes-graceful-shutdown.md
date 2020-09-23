@@ -8,31 +8,23 @@ published: false
 
 これはなに
 ---
-KubernetesにおいてPodが終了するまでの動作を整理し、それを踏まえて、安全な（リクエストの欠損を極小化した）オンラインのローリングアップデートを実現するためにどうすればいいかを考察します。
+KubernetesにおいてPodが終了するまでの動作を整理します。また、それを踏まえて、安全に（リクエストの欠損を極小化した）Podを終了する方法を考察します。
 
-<!-- ### 想定する前提知識
+アプリケーションとしては、HTTPリクエストを受けてレスポンスを返却する、一般的なWebアプリケーションを想定します。
 
-- 突き合わせループの概念を理解している
-- KubernetesのDeployment, Service, Podリソースを使ったことがある -->
+> 注:<br>
+> この記事の内容は、@superbrothersさんによる[詳解 Pods の終了](https://qiita.com/superbrothers/items/3ac78daba3560ea406b2)と[公式ドキュメント](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-termination)が元になっていますのでぜひそちらも参照ください。<br>
+> この記事は 2020/09/23 現在の最新版のKubernetes で内容を再確認するとともに、図を足したり、解説を増やしたりしています。
 
-TD;LR
----
-
+<br>
 
 目次
 ---
 
-- イントロダクション
 - Podが終了する過程
 - 安全なPodの終了のために注意すべきこと
 
-
-イントロダクション
----
-Podが終了するまでの動作は、@superbrothersさんによる[詳解 Pods の終了](https://qiita.com/superbrothers/items/3ac78daba3560ea406b2)に詳しくまとめられています。
-数年前の記事にはなりますが、[公式ドキュメント]()を見たところ今でもそのまま当てはまると考えて良さそうです。
-
-<!-- というわけでこの章は「そちらをご覧ください！」で終わってもよいのですが、それではあまりにも身も蓋もないので、ここでは「これはなに」にある目標を達成するために必要な情報に絞って整理したいと思います。 -->
+<br>
 
 Podが終了する過程
 ---
@@ -57,7 +49,7 @@ Podの終了処理の全体の流れは以下のとおりです。
 
 - `.metadata.deletionTimestamp` :
     - 削除予定時刻。このフィールドの設定が行われる時刻に `.spec.terminationGracePeriodSeconds` （デフォルト: 30秒）を加算した値が設定される
-- `.metadata.deletionGracePeriodSeconds` : 
+- `.metadata.deletionGracePeriodSeconds` :
     - このフィールドの設定が行われる時点での `.spec.terminationGracePeriodSeconds` の値が設定される
 
 これをきっかけに、Podリソースをウォッチしている各コンポーネントが後続の終了処理を開始します。
@@ -72,13 +64,13 @@ preStopフックは、プロセスの終了前に実行する事前処理です�
 `.spec.containers[].lifecycle.preStop` に処理内容を記述することができます。
 指定可能な処理は、任意のコマンドの実行、所定のエンドポイントへのHTTP GETリクエスト、TCPソケットのオープンの試行、の3種です。
 
-preSropフックが終了するか、 `.metadata.deletionGracePeriodSeconds` の時間が経過した場合、kubeletがDockerデーモンにコンテナの終了を依頼します。[^1], [^2]
+preSropフックが終了するか、 `.metadata.deletionGracePeriodSeconds` の時間が経過した場合、kubeletがDockerデーモンにコンテナの終了を依頼します[^1] [^2]。
 このとき、終了処理のタイムアウト時間として、以下の値が渡されます。
 
 - preStopフックが `.metadata.deletionGracePeriodSeconds` までに終了した場合:
     - `.metadata.deletionGracePeriodSeconds` からpreStopフックの所要時間で引いた値（2秒以下だった場合は2秒に切り上げ）
 - preStopフックが `.metadata.deletionGracePeriodSeconds` までに終了しなかった場合
-    - 2秒:
+    - 2秒
 
 コンテナの終了処理では、始めにコンテナにSIGTERMシグナルが送信されます。
 多くのアプリケーションでは、SIGTERMの受信を受けて終了処理を開始するように実装することが多いと思います(Gracefl Shutdown)。
@@ -94,20 +86,21 @@ SIGTERMの後、タイムアウト時間が経過してもコンテナが終了�
 
 ##### preStopフックが `.metadata.deletionGracePeriodSeconds` までに終了した場合
 
-<!-- 図 -->
+<!-- 時系列の図 -->
 
 ##### preStopフックが `.metadata.deletionGracePeriodSeconds` までに終了しなかった場合
 
-<!-- 図 -->
+<!-- 時系列の図 -->
 
 ### 2-b. endpoints controllerとkube-proxyによるサービスアウト
-Podリソースに `deletionTimestamp` が設定されたことをendpoints controllerが検知すると、対象のPodにルーティングするように設定されているServiceリソースから、Podのendpointを除外します。[^3]
-さらに、Serviceリソースからendpointが除外されると、kube-proxyがNodeのiptableを更新します。
-これによってPodに対して新規TCPコネクションが作成されないようになります（サービスアウト）。
+Podリソースに `metadata.deletionTimestamp` が設定されると、endpoints controllerがServiceリソースからPodのendpointを除外します[^3]（この処理は、endpointSliceを有効にしている場合はそちらで同等のことが行なわれます）。
 
-<!-- 図 -->
+Serviceリソースからendpointが除外されると、kube-proxyがトラフィックの配送ルールを更新（iptablesプロキシーモードの場合、Nodeのiptablesを更新[^4]）し、これによってPodに対して新規TCPコネクションが作成されないようになります（サービスアウト）。
+
+<!-- 時系列の図 -->
 
 [^3]: https://github.com/kubernetes/kubernetes/blob/v1.18.9/pkg/controller/endpoint/endpoints_controller.go#L398-L401
+[^4]: https://github.com/kubernetes/kubernetes/blob/v1.18.9/pkg/proxy/iptables/proxier.go#L569-L571
 
 ### 2-c. Ownerリソースによる管理からの除外
 Ownerリソースは、あるリソースに対してそれを管理する関係にある上位のリソースです。Podリソースの場合、ReplicaSet、DaemonSetなどが該当します。
@@ -115,12 +108,57 @@ ReplicaSetやDaemonSet、はたまたReplicaSetの更にOwnerリソースとな�
 
 <!-- 図 -->
 
-Podリソースに `deletionTimestamp` が設定されたことをOwnderリソースのcontrollerが検知すると、Ownerリソースの管理下からPodが除外されます。
+Podリソースに `.metadata.deletionTimestamp` が設定されると、Ownerリソースの管理下からPodが除外されます。
 
-#### Deploymentを起点にPodを起動している場合
-ここでは、Deploymentを起点にPodを起動している場合の動作を見てみます。
+#### ReplicaSet配下のPodを削除した場合の挙動
+ここでは、配下のPodが削除されたときのReplicaSetの動作を見てみます。
 
+ReplicaSetは、管理下にあるPodを所定のReplica数に維持する機能を持るリソースです。
+ReplicaSetのコントローラーは、突き合わせループの際に配下のPod数を毎回チェックしており、 `.metadata.deletionTimestamp` が設定されたPodはこのときのPod数にカウントされないようになっています[^5] [^6]。
+
+これによって、配下のPod数がReplicaSetに設定されたReplica数より少ないと判定され、新たなPodの作成が実行されます[^7]。
+
+以上のことから、Podの削除が実行されると、コンテナの終了処理を待たずに新しいPodの作成が行なわれることになります。
+
+[^5]: https://github.com/kubernetes/kubernetes/blob/v1.18.9/pkg/controller/replicaset/replica_set.go#L685
+[^6]: https://github.com/kubernetes/kubernetes/blob/v1.18.9/pkg/controller/controller_utils.go#L910-L927
+[^7]: https://github.com/kubernetes/kubernetes/blob/v1.18.9/pkg/controller/replicaset/replica_set.go#L696
+
+<br>
 
 安全なPodの終了のために注意すべきこと
 ---
 改めてPodが終了するまでの過程を時系列に整理すると、以下のようになります。
+
+<!-- 時系列の図 -->
+
+Podリソースに `.metadata.deletionTimestamp` が設定されて以降、3種類の処理が走ることになりますが、ここで重要なのはそれらが互いに依存関係を持たず、独立して実行されるということです。
+このため、サービスアウトが行なわれる前にコンテナがシャットダウン処理に入ってしまい、一部のトラフィックがエラーになってしまうということが起こりえます。
+
+これを防止するには、以下のような対策が必要になります。
+
+### 対策1: preStopフックでのsleep
+preStopフックで十分な時間sleepし、サービスアウトが完了してからSIGTERMが送られるようにします。
+SIGTERMをきっかけにGraceful Shutdownを開始し、その中で接続済みのコネクションの処理が終了してからプロセスを停止します。
+
+<!-- 図 -->
+
+### 対策2: 最強のGraceful Shutdown
+preStopフック、またはSIGTERMをきっかけにGraceful Shutdownを開始します。
+Graceful Shutdownの処理では、新規コネクションを受け入れつつ全てのコネクションの処理が終了してからプロセスを停止します。
+
+<!-- 図 -->
+
+### 対策案の比較
+対策1はGraceful Shutdownの実装が比較的容易な一方、余裕を持ってsleep時間を設定するとPodの終了が遅くなるデメリットがあります。とはいえ、ReplicaSetの挙動で見たとおり、 `.metadata.deletionTimestamp` がPodに設定された時点で、OwnerリソースからはそのPodは終了したものとして扱われますので、実質的な害はあまりないかもしれません。
+
+対策2はGraceful Shutdownの処理がやや複雑になりますが、sleep時間の設定を意識する必要はありません。そのため複雑さをアプリケーションに寄せた方法と言えます。
+とはいえ、例えばSpring Bootには新規コネクションを受け入れつつシャットダウンを進めるようなGraceful Shutdownができない場合もある[^8]ようです。そういった場合はこちらを採用するのはハードルが高いでしょう。
+
+[^8]: https://docs.spring.io/spring-boot/docs/2.3.4.RELEASE/reference/htmlsingle/#boot-features-graceful-shutdown
+
+<br>
+
+次回予告
+---
+この記事では机上の考察にとどまりましたが、実際に実験してみようと思います！
