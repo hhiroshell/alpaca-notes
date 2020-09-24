@@ -120,7 +120,7 @@ ReplicaSetのコントローラーは、突き合わせループの際に配下�
 ---
 改めてPodが終了するまでの過程を時系列に整理すると、以下のようになります。
 
-<!-- 時系列の図 -->
+![](./images/kubernetes-graceful-shutdown-07.dio.svg)
 
 Podリソースに `.metadata.deletionTimestamp` が設定されて以降、3種類の処理が走ることになりますが、ここで重要なのはそれらが互いに依存関係を持たず、独立して実行されるということです。
 このため、サービスアウトが行なわれる前にコンテナがシャットダウン処理に入ってしまい、一部のトラフィックがエラーになってしまうということが起こりえます。
@@ -131,7 +131,7 @@ Podリソースに `.metadata.deletionTimestamp` が設定されて以降、3種
 preStopフックで十分な時間sleepし、サービスアウトが完了してからSIGTERMが送られるようにします。
 SIGTERMをきっかけにGraceful Shutdownを開始し、その中で接続済みのコネクションの処理が終了してからプロセスを停止します。
 
-<!-- 図 -->
+![](./images/kubernetes-graceful-shutdown-08.dio.svg)
 
 ### 対策2: 最強のGraceful Shutdown
 preStopフック、またはSIGTERMをきっかけにGraceful Shutdownを開始します。
