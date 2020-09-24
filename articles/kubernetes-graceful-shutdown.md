@@ -78,6 +78,7 @@ SIGTERMの後、タイムアウト時間が経過してもコンテナが終了�
 ![](./images/kubernetes-graceful-shutdown-02.dio.svg)
 
 ##### preStopフックが `.metadata.deletionGracePeriodSeconds` までに終了しなかった場合
+この場合、preStopフックの終了を待たずにコンテナの終了処理に移行します。このときタイムアウトは固定で2秒ですので、SIGTERMの送信後2秒が経過するとSIGKILLが送信されます。
 
 ![](./images/kubernetes-graceful-shutdown-03.dio.svg)
 
@@ -86,16 +87,15 @@ Podリソースに `metadata.deletionTimestamp` が設定されると、endpoint
 
 Serviceリソースからendpointが除外されると、kube-proxyがトラフィックの配送ルールを更新（iptablesプロキシーモードの場合、Nodeのiptablesを更新[^4]）し、これによってPodに対して新規TCPコネクションが作成されないようになります（サービスアウト）。
 
-<!-- 時系列の図 -->
+![](./images/kubernetes-graceful-shutdown-04.dio.svg)
 
 [^3]: https://github.com/kubernetes/kubernetes/blob/v1.18.9/pkg/controller/endpoint/endpoints_controller.go#L398-L401
 [^4]: https://github.com/kubernetes/kubernetes/blob/v1.18.9/pkg/proxy/iptables/proxier.go#L569-L571
 
 ### 2-c. Ownerリソースによる管理からの除外
-Ownerリソースは、あるリソースに対してそれを管理する関係にある上位のリソースです。Podリソースの場合、ReplicaSet、DaemonSetなどが該当します。
-ReplicaSetやDaemonSet、はたまたReplicaSetの更にOwnerリソースとなるDeploymentなどを `kubectl create` することでPodを起動している場合、そのPodはOwnerの管理下にあります。
+Ownerリソースは、あるリソースに対してそれを管理する関係にある上位のリソースです。Podリソースの場合、ReplicaSet、DaemonSetなどが該当します。ReplicaSetやDaemonSet、はたまたReplicaSetの更にOwnerリソースとなるDeploymentなどを `kubectl create` することでPodを起動している場合、そのPodはOwnerの管理下にあります。
 
-<!-- 図 -->
+![](./images/kubernetes-graceful-shutdown-05.dio.svg)
 
 Podリソースに `.metadata.deletionTimestamp` が設定されると、Ownerリソースの管理下からPodが除外されます。
 
@@ -107,13 +107,14 @@ ReplicaSetのコントローラーは、突き合わせループの際に配下�
 
 これによって、配下のPod数がReplicaSetに設定されたReplica数より少ないと判定され、新たなPodの作成が実行されます[^7]。
 
+![](./images/kubernetes-graceful-shutdown-06.dio.svg)
+
 以上のことから、Podの削除が実行されると、コンテナの終了処理を待たずに新しいPodの作成が行なわれることになります。
 
 [^5]: https://github.com/kubernetes/kubernetes/blob/v1.18.9/pkg/controller/replicaset/replica_set.go#L685
 [^6]: https://github.com/kubernetes/kubernetes/blob/v1.18.9/pkg/controller/controller_utils.go#L910-L927
 [^7]: https://github.com/kubernetes/kubernetes/blob/v1.18.9/pkg/controller/replicaset/replica_set.go#L696
 
-<br>
 
 安全なPodの終了のために注意すべきこと
 ---
