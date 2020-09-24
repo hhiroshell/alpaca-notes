@@ -34,7 +34,7 @@ Podが終了する過程
 
 2.の3つの処理は、それぞれを担当するコンポーネントが独立して実行するため、例えば「サービスアウトしてからシャットダウンする」といったような互いに依存関係を持った制御は行われません。これは、本エントリーのテーマのひとつである、「Podの安全な終了」を考える上で重要なポイントになりますので、注意してください。
 
-![](./images/kubernetes-graceful-shutdown-01.dio.svg)
+![](https://raw.githubusercontent.com/hhiroshell/alpaca-notes/master/articles/images/kubernetes-graceful-shutdown-01.dio.svg)
 
 以降は、上に挙げた各処理において具体的にどのような処理が行われているかを説明します。
 
@@ -75,19 +75,19 @@ SIGTERMの後、タイムアウト時間が経過してもコンテナが終了�
 
 ##### preStopフックが `.metadata.deletionGracePeriodSeconds` までに終了した場合
 
-![](./images/kubernetes-graceful-shutdown-02.dio.svg)
+![](https://raw.githubusercontent.com/hhiroshell/alpaca-notes/master/articles/images/kubernetes-graceful-shutdown-02.dio.svg)
 
 ##### preStopフックが `.metadata.deletionGracePeriodSeconds` までに終了しなかった場合
 この場合、preStopフックの終了を待たずにコンテナの終了処理に移行します。このときタイムアウトは固定で2秒ですので、SIGTERMの送信後2秒が経過するとSIGKILLが送信されます。
 
-![](./images/kubernetes-graceful-shutdown-03.dio.svg)
+![](https://raw.githubusercontent.com/hhiroshell/alpaca-notes/master/articles/images/kubernetes-graceful-shutdown-03.dio.svg)
 
 ### 2-b. endpoints controllerとkube-proxyによるサービスアウト
 Podリソースに `metadata.deletionTimestamp` が設定されると、endpoints controllerがServiceリソースからPodのendpointを除外します[^3]（この処理は、endpointSliceを有効にしている場合はそちらで同等のことが行なわれます）。
 
 Serviceリソースからendpointが除外されると、kube-proxyがトラフィックの配送ルールを更新（iptablesプロキシーモードの場合、Nodeのiptablesを更新[^4]）し、これによってPodに対して新規TCPコネクションが作成されないようになります（サービスアウト）。
 
-![](./images/kubernetes-graceful-shutdown-04.dio.svg)
+![](https://raw.githubusercontent.com/hhiroshell/alpaca-notes/master/articles/images/kubernetes-graceful-shutdown-04.dio.svg)
 
 [^3]: https://github.com/kubernetes/kubernetes/blob/v1.18.9/pkg/controller/endpoint/endpoints_controller.go#L398-L401
 [^4]: https://github.com/kubernetes/kubernetes/blob/v1.18.9/pkg/proxy/iptables/proxier.go#L569-L571
@@ -95,7 +95,7 @@ Serviceリソースからendpointが除外されると、kube-proxyがトラフ�
 ### 2-c. Ownerリソースによる管理からの除外
 Ownerリソースは、あるリソースに対してそれを管理する関係にある上位のリソースです。Podリソースの場合、ReplicaSet、DaemonSetなどが該当します。ReplicaSetやDaemonSet、はたまたReplicaSetの更にOwnerリソースとなるDeploymentなどを `kubectl create` することでPodを起動している場合、そのPodはOwnerの管理下にあります。
 
-![](./images/kubernetes-graceful-shutdown-05.dio.svg)
+![](https://raw.githubusercontent.com/hhiroshell/alpaca-notes/master/articles/images/kubernetes-graceful-shutdown-05.dio.svg)
 
 Podリソースに `.metadata.deletionTimestamp` が設定されると、Ownerリソースの管理下からPodが除外されます。
 
@@ -107,7 +107,7 @@ ReplicaSetのコントローラーは、突き合わせループの際に配下�
 
 これによって、配下のPod数がReplicaSetに設定されたReplica数より少ないと判定され、新たなPodの作成が実行されます[^7]。
 
-![](./images/kubernetes-graceful-shutdown-06.dio.svg)
+![](https://raw.githubusercontent.com/hhiroshell/alpaca-notes/master/articles/images/kubernetes-graceful-shutdown-06.dio.svg)
 
 以上のことから、Podの削除が実行されると、コンテナの終了処理を待たずに新しいPodの作成が行なわれることになります。
 
@@ -120,7 +120,7 @@ ReplicaSetのコントローラーは、突き合わせループの際に配下�
 ---
 改めてPodが終了するまでの過程を時系列に整理すると、以下のようになります。
 
-![](./images/kubernetes-graceful-shutdown-07.dio.svg)
+![](https://raw.githubusercontent.com/hhiroshell/alpaca-notes/master/articles/images/kubernetes-graceful-shutdown-07.dio.svg)
 
 Podリソースに `.metadata.deletionTimestamp` が設定されて以降、3種類の処理が走ることになりますが、ここで重要なのはそれらが互いに依存関係を持たず、独立して実行されるということです。
 このため、サービスアウトが行なわれる前にコンテナがシャットダウン処理に入ってしまい、一部のトラフィックがエラーになってしまうということが起こりえます。
@@ -131,13 +131,13 @@ Podリソースに `.metadata.deletionTimestamp` が設定されて以降、3種
 preStopフックで十分な時間sleepし、サービスアウトが完了してからSIGTERMが送られるようにします。
 SIGTERMをきっかけにGraceful Shutdownを開始し、その中で接続済みのコネクションの処理が終了してからプロセスを停止します。
 
-![](./images/kubernetes-graceful-shutdown-08.dio.svg)
+![](https://raw.githubusercontent.com/hhiroshell/alpaca-notes/master/articles/images/kubernetes-graceful-shutdown-08.dio.svg)
 
 ### 対策2: 最強のGraceful Shutdown
 preStopフック、またはSIGTERMをきっかけにGraceful Shutdownを開始します。
 Graceful Shutdownの処理では、新規コネクションを受け入れつつ全てのコネクションの処理が終了してからプロセスを停止します。
 
-![](./images/kubernetes-graceful-shutdown-09.dio.svg)
+![](https://raw.githubusercontent.com/hhiroshell/alpaca-notes/master/articles/images/kubernetes-graceful-shutdown-09.dio.svg)
 
 ### 対策案の比較
 対策1はGraceful Shutdownの実装が比較的容易な一方、余裕を持ってsleep時間を設定するとPodの終了が遅くなるデメリットがあります。とはいえ、ReplicaSetの挙動で見たとおり、 `.metadata.deletionTimestamp` がPodに設定された時点で、OwnerリソースからはそのPodは終了したものとして扱われますので、実質的な害はあまりないかもしれません。
