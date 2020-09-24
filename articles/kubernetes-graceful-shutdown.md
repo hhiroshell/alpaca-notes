@@ -3,7 +3,7 @@ title: "アルパカでもわかる安全なPodの終了"
 emoji: "🦙"
 type: "tech"
 topics: ["kubernetes"]
-published: false
+published: true
 ---
 
 これはなに
@@ -137,7 +137,7 @@ SIGTERMをきっかけにGraceful Shutdownを開始し、その中で接続済�
 preStopフック、またはSIGTERMをきっかけにGraceful Shutdownを開始します。
 Graceful Shutdownの処理では、新規コネクションを受け入れつつ全てのコネクションの処理が終了してからプロセスを停止します。
 
-<!-- 図 -->
+![](./images/kubernetes-graceful-shutdown-09.dio.svg)
 
 ### 対策案の比較
 対策1はGraceful Shutdownの実装が比較的容易な一方、余裕を持ってsleep時間を設定するとPodの終了が遅くなるデメリットがあります。とはいえ、ReplicaSetの挙動で見たとおり、 `.metadata.deletionTimestamp` がPodに設定された時点で、OwnerリソースからはそのPodは終了したものとして扱われますので、実質的な害はあまりないかもしれません。
@@ -147,7 +147,6 @@ Graceful Shutdownの処理では、新規コネクションを受け入れつつ
 
 [^8]: https://docs.spring.io/spring-boot/docs/2.3.4.RELEASE/reference/htmlsingle/#boot-features-graceful-shutdown
 
-<br>
 
 次回予告
 ---
