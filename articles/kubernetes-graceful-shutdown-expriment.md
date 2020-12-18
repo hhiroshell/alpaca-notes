@@ -3,7 +3,7 @@ title: "アルパカでもわかる安全なPodの終了 - 実験編"
 emoji: "🦙"
 type: "tech"
 topics: ["kubernetes"]
-published: false
+published: true
 ---
 
 これはなに
