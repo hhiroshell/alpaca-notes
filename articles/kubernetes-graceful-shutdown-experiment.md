@@ -75,9 +75,9 @@ Graceful Shutdownをアプリケーションに実装すると、アプリケー
 ランダム値を生成する処理を繰り返すことでCPU負荷がかかるようにしています。
 ループ回数を起動フラグで `l=640` などとすることで指定できます。
 
-- https://github.com/hhiroshell/cowweb-go/blob/823894c18cbdec4c796e6b91deab078034d75fb8/pkg/infrastructure/cowsay/slow_cowsay.go#L19-L27
+- https://github.com/hhiroshell/cowweb-go/blob/823894c18cbdec4c796e6b91deab078034d75fb8/pkg/infrastructure/cowsay/slow_cowsay.go#L19-L23
 
-```
+```go
 	// c.load が l フラグで指定した値となる
 	for i := 0; i < c.load; i++ {
 		for j := 0; j < c.load; j++ {
