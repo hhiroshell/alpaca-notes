@@ -65,8 +65,8 @@ Graceful Shutdownをアプリケーションに実装すると、アプリケー
 - https://github.com/hhiroshell/cowweb-go/tree/v1.1.1
 - Go製のサンプルアプリケーション
 - 起動フラグで1リクエストの処理でかかるCPU負荷を調整できる[^1]
-- 起動フラグで終了時にGraceful Shutdownを行うかどうかを指定することができます
-- preStopフックはDeploymentのマニフェストに記述してデプロイします
+- 起動フラグで終了時にGraceful Shutdownを行うかどうかを指定することができる
+- preStopフックはDeploymentのマニフェストに記述してデプロイする
 
 [^1]: 内部処理でループする回数を変えるだけなので、miricoresなどの単位が指定できるわけではありません。
 
@@ -167,7 +167,7 @@ preStopスリープの時間を十分に取ることで、サービスアウト�
 
 #### 2. Graceful Shutdownの効果確認
 次に、Graceful Shutdownの効果を調べるために、以下2通りの条件で実験してみます。
-Graceful Shutdownをする/しないの条件以外は同じにしてあります（CPU負荷フラグ、最大最大リクエスト数の値が先程と異なりますが、これの理由は後述します）。
+Graceful Shutdownをする/しないの条件以外は同じにしてあります（CPU負荷フラグ、最大リクエスト数の値が先程と異なりますが、これの理由は後述します）。
 
 |#                          |条件2-f    |条件2-t
 |-                          |-          |-
