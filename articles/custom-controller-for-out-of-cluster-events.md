@@ -92,7 +92,7 @@ GenericEventからReconcileに至るまでの大まかな流れは以下のよ�
 
 実装していく！
 ---
-それでは、実装例を紹介していきます。
+それでは実装例を紹介していきます。これ以降に引用するコード例は、[こちらのリポジトリ](https://github.com/hhiroshell/storage-bucket-prober/blob/1e942f8e15335026ae54273a697e36a7cf86030f/controllers/storagebucket_controller.go)に実物がありますので合わせて参照ください。
 
 > 📘【note】
 > 以降、kubebuilderで生成したコントローラーの雛形をベースに説明していきます。まだkubebuilderに触ったことがないという方は、以下のいずれかのチュートリアルをやっておくことをおすすめします。
@@ -106,14 +106,24 @@ Reconcileメソッドは、コントローラーが実行するReconcile処理�
 受け取ったStorageBucketリソースに対応する実際のストレージに対して、行いたいチェック処理を実装します。
 
 ```go
-func (c *Controller) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	var storageBucket myapiv1.StorageBucket
-	err := c.Client.Get(ctx, req.NamespacedName, &storageBucket)
-	if err != nil {
+func (r *StorageBucketReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	log := log.FromContext(ctx)
+	log.Info("probe")
+
+	var storageBucket demov1.StorageBucket
+	if err := r.Client.Get(ctx, req.NamespacedName, &storageBucket); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-    // ここでバケットのチェックをして、カスタムリソースのStatusフィールドを更新するなどする
+	now := metav1.Now()
+	storageBucket.Status.LastProbeTime = &now
+
+	// ここでバケットのチェックをする
+	storageBucket.Status.Available = true
+
+	if err := r.Client.Status().Patch(ctx, &storageBucket, client.Merge); err != nil {
+		return ctrl.Result{Requeue: false}, err
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -203,7 +213,7 @@ func (c *Controller) SetupWithManager(ctx context.Context, mgr ctrl.Manager) err
 
     // (3)
 	handler := handler.EnqueueRequestsFromMapFunc(func(object client.Object) []reconcile.Request {
-		storageBuckets := phalanksv1alpha1.StorageBucketList{}
+		storageBuckets := demov1.StorageBucketList{}
 		mgr.GetCache().List(ctx, &storageBuckets)
 
 		var requests []reconcile.Request
@@ -221,7 +231,7 @@ func (c *Controller) SetupWithManager(ctx context.Context, mgr ctrl.Manager) err
 
     // (4)
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&phalanksv1alpha1.StorageBucket{}).
+		For(&demov1.StorageBucket{}).
 		Watches(&source, handler).
 		Complete(c)
 }
@@ -243,6 +253,7 @@ func (c *Controller) SetupWithManager(ctx context.Context, mgr ctrl.Manager) err
 このあたりは通常のカスタムコントローラーと同様ですので、説明は省略します。
 
 実装例の紹介は以上です。お疲れさまでした！
+
 
 まとめ
 ---
