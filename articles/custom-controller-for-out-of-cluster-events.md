@@ -15,7 +15,6 @@ Kubernetesクラスター外で起きたイベントを起点にReconcileをお�
 > この記事は[Kubernetes2 Advent Calendar 2021](https://qiita.com/advent-calendar/2021/kubernetes)の3日目です。
 > 昨日は@makocchiさんの[Advanced StatefulSet を使ってみよう](https://makocchi.medium.com/how-to-use-advanced-statefulset-ja-779ca00e2dda)でした。
 
-<br>
 
 目次
 ---
@@ -37,7 +36,7 @@ Kubernetesクラスター外で起きたイベントを起点にReconcileをお�
 - Kubernetesクラスターの外にあるオブジェクトストレージのバケットを、カスタムリソース"StorageBucket"で定義する
 - カスタムリソースで定義されたStorageBucketに対してヘルスチェックを定期的に行い、結果をStorageBucketリソースのStatusフィールドに記録する
 
-![](images/custom-controller-for-out-of-cluster-events-01.dio.svg)
+![](https://raw.githubusercontent.com/hhiroshell/alpaca-notes/master/articles/images/custom-controller-for-out-of-cluster-events-01.dio.svg)
 
 これを実現するため、「一定時間が経過した」というイベントを起点にカスタムコントローラーのReconcileを実行する、という実装をしてみます。
 
@@ -86,11 +85,10 @@ func (blder *Builder) Watches(src source.Source, eventhandler handler.EventHandl
 
 GenericEventからReconcileに至るまでの大まかな流れは以下のようになります。
 
-![](images/custom-controller-for-out-of-cluster-events-02.dio.svg)
+![](https://raw.githubusercontent.com/hhiroshell/alpaca-notes/master/articles/images/custom-controller-for-out-of-cluster-events-02.dio.svg)
 
 それでは、Watches()を利用して、定期的にReconcileを行うコントローラーを実装していきます。
 
-<br>
 
 実装していく！
 ---
