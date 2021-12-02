@@ -3,7 +3,7 @@ title: "カスタムコントローラーで任意のイベントを起点にRec
 emoji: "🦙"
 type: "tech"
 topics: ["kubernetes"]
-published: false
+published: true
 ---
 
 これはなに
