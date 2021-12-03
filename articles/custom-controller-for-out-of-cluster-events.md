@@ -12,7 +12,7 @@ Kubernetesクラスター外で起きたイベントを起点にReconcileをお�
 これができると、Kubernetesのカスタムリソースでクラスターの外にあるシステムを管理する、そんなコントローラーを作ることができます。素敵！
 
 > 📘【note】
-> この記事は[Kubernetes2 Advent Calendar 2021](https://qiita.com/advent-calendar/2021/kubernetes)の3日目です。
+> この記事は[Kubernetes Advent Calendar 2021](https://qiita.com/advent-calendar/2021/kubernetes)の3日目です。
 > 昨日は@makocchiさんの[Advanced StatefulSet を使ってみよう](https://makocchi.medium.com/how-to-use-advanced-statefulset-ja-779ca00e2dda)でした。
 
 
