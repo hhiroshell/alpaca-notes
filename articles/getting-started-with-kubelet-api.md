@@ -3,7 +3,7 @@ title: "kubeletのAPIを調べてみた"
 emoji: "🦙"
 type: "tech"
 topics: ["kubernetes"]
-published: false
+published: true
 ---
 
 これはなに
