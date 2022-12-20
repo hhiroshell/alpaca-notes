@@ -110,7 +110,7 @@ spec:
     args:
       - |
         tail -f /dev/null
-  serviceAccount:
+  serviceAccount: kubelet-api-experiment
 ---
 apiVersion: v1
 kind: ServiceAccount
