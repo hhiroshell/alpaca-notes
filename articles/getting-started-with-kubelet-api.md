@@ -48,8 +48,7 @@ kubeletのAPIの詳細を記したドキュメントが見つけられなかっ�
     - 他はPrometheusのExporterの形式だが、このエンドポイントはJSONで値が取得できる
     - v0.5.x以前のMetrics Serverはこのエンドポイントからメトリクスを収集している[^1]
 
-[^1]:
-https://kubernetes.io/docs/tasks/debug/debug-cluster/resource-metrics-pipeline/#summary-api-source
+[^1]: https://kubernetes.io/docs/tasks/debug/debug-cluster/resource-metrics-pipeline/#summary-api-source
 
 
 #### kubectlコマンドの機能で内部的に利用されるもの
