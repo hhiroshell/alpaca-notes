@@ -192,7 +192,7 @@ sh-4.2# curl -H "Authorization: Bearer $TOKEN" "https://${NODE_IP}:10250/pods"
 
 冒頭に書いた「kubelet APIを使った開発」では、DaemonSetとして各Nodeに配置するエージェントで、自分がいるNode上のPod一覧を `/pods` から取得しようと考えています。
 
-DaemonSetでデプロイするとNodeを足す毎にエージェントの数が増えていくので、kube api-serverからPod情報を取得してしまうと、kube-apiserverにかかる負荷が大きくなってします。
+DaemonSetでデプロイするとNodeを足す毎にエージェントの数が増えていくので、kube-apiserverからPod情報を取得していると、そこにかかる負荷がどんどん大きくなってします。
 そこで、Node上のkubeletからPod情報を取得して負荷をオフロードするというアイデアです。
 
 ```
