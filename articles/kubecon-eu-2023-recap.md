@@ -3,7 +3,7 @@ title: "KubeCon EU 2023 Recap"
 emoji: "🦙"
 type: "tech"
 topics: ["kubernetes", "kubecon"]
-published: false
+published: true
 ---
 
 これはなに
