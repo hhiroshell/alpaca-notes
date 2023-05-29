@@ -95,33 +95,89 @@ AppleのエンジニアであるIllya Chekrygin([Github](https://github.com/iche
     - この図の例では、Distributed PDBを5つapplyし、コントローラーによって子PDBがそれぞれ1つずつ作成される。それぞれのDistributed PDBは他のDPDBの子PDBをFederation PDBとして参照している
     - 1つのレプリカがevictされると、それをFedration PDBとして参照しているPDBのspecを変更して、同じShardがそれ移動evictされないようになる
 
-![](/images/dpdb-p11.png)
-![](/images/dpdb-p12.png)
+![Multi Namespace PDB](/images/dpdb-p11.png)
+
+- Namespaceを跨いでFederation PDBを指定できる。これによってNamespceを跨いで作用するPDBを実現できる
+
+![Multi Cluster PDB](/images/dpdb-p12.png)
+
+- クラスターを跨いでFederation PDBを指定できる。これによってクラスターを跨いで作用するPDBを実現できる
+
+### Demo
+3つのKubernetesにまたがるFederated PDBのデモ。
+スライドのユースケースよりも少し複雑な構成で、9レプリカで5つにShardが複製されるクラスターになっている。
+
+ローカルマシン上にkindクラスタx3
+
+```
+kubeclt config get-contexts
+CURRENT   NAME         CLUSTER      AUTHINFO     NAMESPACE
+          kind-blue    kind-blue    kind-blue
+*         kind-green   kind-green   kind-green
+          kind-red     kind-red     kind-red
+```
+
+9つのレプリカを3クラスタに分散配置。
+
+```
+$ for i in red blue green; do kubectl --context=kind-$i get pods --show-labels; done
+NAME                 READY   STATUS    RESTARTS   AGE     LABELS
+database-00-10-20   1/1     Running   0          2m33s   app=database,ring=00-10-20
+database-30-40-50   1/1     Running   0          2m32s   app=database,ring=30-40-50
+database-60-70-80   1/1     Running   0          2m31s   app=database,ring=60-70-80
+NAME                 READY   STATUS    RESTARTS   AGE     LABELS
+database-10-20-30   1/1     Running   0          2m32s   app=database,ring=10-20-30
+database-40-50-60   1/1     Running   0          2m32s   app=database,ring=40-50-60
+database-70-80-00   1/1     Running   0          2m31s   app=database,ring=70-80-00
+NAME                 READY   STATUS    RESTARTS   AGE     LABELS
+database-20-30-40   1/1     Running   0          2m32s   app=database,ring=20-30-40
+database-50-60-70   1/1     Running   0          2m32s   app=database,ring=50-60-70
+database-80-00-10   1/1     Running   0          2m31s   app=database,ring=80-00-10
+```
+
+各Podに対応するPDBが作られている。
+
+```
+for i in red blue green; do kubectl --context=kind-$i get pdb; done
+NAME                 MIN AVAILABLE   MAX UNAVAILABLE   ALLOWED DISRUPTIONS   AGE
+database-00-10-20   4               N/A               1                     26s
+database-30-40-50   4               N/A               1                     23s
+database-60-70-80   4               N/A               1                     22s
+NAME                 MIN AVAILABLE   MAX UNAVAILABLE   ALLOWED DISRUPTIONS   AGE
+database-10-20-30   4               N/A               1                     25s
+database-40-50-60   4               N/A               1                     22s
+database-70-80-00   4               N/A               1                     22s
+NAME                 MIN AVAILABLE   MAX UNAVAILABLE   ALLOWED DISRUPTIONS   AGE
+database-20-30-40   4               N/A               1                     23s
+database-50-60-70   4               N/A               1                     22s
+database-80-00-10   4               N/A               1                     22s
+```
+
+Podをひとつevictすると、Shardが複製されている他のPodのPDBが`allowedDisruptions=0`となり、それ以上Evictされないようになる。
+
+```
+for i in red blue green; do kubectl --context=kind-$i get pdb; done
+NAME                 MIN AVAILABLE   MAX UNAVAILABLE   ALLOWED DISRUPTIONS   AGE
+database-00-10-20   4               N/A               1                     3m13s
+database-30-40-50   4               N/A               0                     3m10s <-- evicted pod
+database-60-70-80   4               N/A               1                     3m9s
+NAME                 MIN AVAILABLE   MAX UNAVAILABLE   ALLOWED DISRUPTIONS   AGE
+database-10-20-30   4               N/A               0                     3m12s
+database-40-50-60   4               N/A               0                     3m9s
+database-70-80-00   4               N/A               1                     3m9s
+NAME                 MIN AVAILABLE   MAX UNAVAILABLE   ALLOWED DISRUPTIONS   AGE
+database-20-30-40   4               N/A               0                     3m10s
+database-50-60-70   4               N/A               0                     3m9s
+database-80-00-10   4               N/A               1                     3m9s
+```
 
 
-
-### 実装はこんな感じになってた
-
-
-
-
-
-### 所感
-
-
-
-
-
-
-
-まとめ
+所感
 ---
 
+- 1つのPodのevictが他のPDBに伝搬するのにタイムラグがあり、これが実用上どの程度問題になるかが気になった
+- コントローラーが複数クラスタに1つずつ配置されて協調動作する、という構成をシンプルな仕組みで実現していて面白い（1つのクラスタにコントローラーがいて、他クラスタのリソースをコントロールするのではない）
+- 全体としての挙動が予想しづらい印象を持ったがどうなのか
 
 
-
-
-
-
-おまけ
----
+以上。
