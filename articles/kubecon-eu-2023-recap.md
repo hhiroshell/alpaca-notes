@@ -54,16 +54,15 @@ AppleのエンジニアであるIllya Chekrygin([Github](https://github.com/iche
 - `{.spec.maxUnavailable}`または`{.spec.minAvailable}`フィールドで、`{.spec.selector}`で選択されたPodのうち同時にevictされてもいい数を指定する
 - `{.status}`フィールドから、対象のPod群の現在の状況（正常なPod数、期待される正常なPod数など）が分かる
 
-![](/images/pdb-p07.png)
-
-- Cassandraのクラスターで、Shardのレプリケーション範囲をカバーするPDBを考える
-    - 5レプリカのうち3つにShardを複製するとした場合、3/5のPodに対するPDBを5つ用意することになる
-    - 1つのPodが、複数のPDBの`{.spec.selector}`からマッチしてしまう → このようなPDBは作成できない
+![](/images/dpdb-p07.png)
 
 ### 標準のPDBではカバーできないユースケース
 
 ![](/images/dpdb-p08.png)
 
+- Cassandraのクラスターで、Shardのレプリケーション範囲をカバーするPDBを考える
+    - 5レプリカのうち3つにShardを複製するとした場合、3/5のPodに対するPDBを5つ用意することになる
+    - 1つのPodが、複数のPDBの`{.spec.selector}`からマッチしてしまう → このようなPDBは作成できない
 
 ### Federated PDBっていうのを考えてみた
 
