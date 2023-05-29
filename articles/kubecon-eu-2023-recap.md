@@ -46,13 +46,16 @@ AppleのエンジニアであるIllya Chekrygin([Github](https://github.com/iche
 ここからはセッションの中身をかいつまんで紹介します。
 
 ### Pod Disruption Budget(PDB)ってこんなやつ
-まずはPDBの簡単な復習。
+
+#### PDBの簡単な復習
 
 ![PDB](/images/dpdb-p05.png)
 
 - PDBはNamespce Scopedなリソース
 - `{.spec.maxUnavailable}`または`{.spec.minAvailable}`フィールドで、`{.spec.selector}`で選択されたPodのうち同時にevictされてもいい数を指定する
 - `{.status}`フィールドから、対象のPod群の現在の状況（正常なPod数、期待される正常なPod数など）が分かる
+
+#### PDBのいいところ、いまいちなところ
 
 ![PDBのいいところ、いまいちなところ](/images/dpdb-p07.png)
 
@@ -103,21 +106,20 @@ AppleのエンジニアであるIllya Chekrygin([Github](https://github.com/iche
 
 - クラスターを跨いでFederation PDBを指定できる。これによってクラスターを跨いで作用するPDBを実現できる
 
-### Demo
-3つのKubernetesにまたがるFederated PDBのデモ。
-スライドのユースケースよりも少し複雑な構成で、9レプリカで5つにShardが複製されるクラスターになっている。
+### デモ
+3つのKubernetesにまたがるFederated PDBのデモ。スライドのユースケースよりも少し複雑な構成で、9レプリカで5つにShardが複製されるクラスターになっている。
 
-ローカルマシン上にkindクラスタx3
+- ローカルマシン上にkindクラスタx3
 
 ```
-kubeclt config get-contexts
+$ kubeclt config get-contexts
 CURRENT   NAME         CLUSTER      AUTHINFO     NAMESPACE
           kind-blue    kind-blue    kind-blue
 *         kind-green   kind-green   kind-green
           kind-red     kind-red     kind-red
 ```
 
-9つのレプリカを3クラスタに分散配置。
+- 9つのレプリカを3クラスタに分散配置
 
 ```
 $ for i in red blue green; do kubectl --context=kind-$i get pods --show-labels; done
@@ -135,10 +137,10 @@ database-50-60-70   1/1     Running   0          2m32s   app=database,ring=50-60
 database-80-00-10   1/1     Running   0          2m31s   app=database,ring=80-00-10
 ```
 
-各Podに対応するPDBが作られている。
+- 各Podに対応するPDBが作られている
 
 ```
-for i in red blue green; do kubectl --context=kind-$i get pdb; done
+$ for i in red blue green; do kubectl --context=kind-$i get pdb; done
 NAME                 MIN AVAILABLE   MAX UNAVAILABLE   ALLOWED DISRUPTIONS   AGE
 database-00-10-20   4               N/A               1                     26s
 database-30-40-50   4               N/A               1                     23s
@@ -153,10 +155,10 @@ database-50-60-70   4               N/A               1                     22s
 database-80-00-10   4               N/A               1                     22s
 ```
 
-Podをひとつevictすると、Shardが複製されている他のPodのPDBが`allowedDisruptions=0`となり、それ以上Evictされないようになる。
+- Podをひとつevictすると、Shardが複製されている他のPodのPDBが`allowedDisruptions=0`となり、それ以上Evictされないようになる
 
 ```
-for i in red blue green; do kubectl --context=kind-$i get pdb; done
+$ for i in red blue green; do kubectl --context=kind-$i get pdb; done
 NAME                 MIN AVAILABLE   MAX UNAVAILABLE   ALLOWED DISRUPTIONS   AGE
 database-00-10-20   4               N/A               1                     3m13s
 database-30-40-50   4               N/A               0                     3m10s <-- evicted pod
