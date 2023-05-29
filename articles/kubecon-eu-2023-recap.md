@@ -59,6 +59,7 @@ AppleのエンジニアであるIllya Chekrygin([Github](https://github.com/iche
 - PDBのいいところ
     - シンプル
 - PDBのいまいちなところ
+    - Namespaceを跨いだりとかできない
     - Podの選択方法がラベルだけで、細かい指定が難しい
     - 拡張性に難がある
 - PDBの勘弁してほしいところ
@@ -75,9 +76,25 @@ AppleのエンジニアであるIllya Chekrygin([Github](https://github.com/iche
 
 ### Federated PDBっていうのを考えてみた
 
-![](/images/dpdb-p09.png)
+![Federated PDBの基本アイデア](/images/dpdb-p09.png)
 
-![](/images/dpdb-p10.png)
+- 1つのDistributed PDBリソースに対して、1つの子PDB
+- 指定された他のPDB(Federation PDB)の`{.status}`に応じて、子PDBの`{.spec}`を書き換える
+    - Federation PDBは複数でもよい
+    - Federation PDBは他のDistributed PDBの子PDBでもよい(Bidirectional)
+
+![CassandraクラスターとFederated PDB](/images/dpdb-p10.png)
+
+- Distributed PDBリソース
+    - `{.spec.maxUnavailable}`、`{.spec.minAvailable}`、`{.spec.selector}`に加えて、`{.spec.federation}`がある
+    - `{.spec.selector}`1つのPodを選択する（のが基本と思われる）。このPodに対する子PDBが作られる
+    - `{.spec.federation}`にFederation PDBとなるPDBリソースを指定する
+- Cassandraクラスターのユースケースに適用した場合
+    - `{.spec.selector}`を1つのレプリカにマッチさせる
+    - Shardの複製先のレプリカ（に対するPDB）をFederation PDBに指定する
+    - この図の例では、Distributed PDBを5つapplyし、コントローラーによって子PDBがそれぞれ1つずつ作成される。それぞれのDistributed PDBは他のDPDBの子PDBをFederation PDBとして参照している
+    - 1つのレプリカがevictされると、それをFedration PDBとして参照しているPDBのspecを変更して、同じShardがそれ移動evictされないようになる
+
 ![](/images/dpdb-p11.png)
 ![](/images/dpdb-p12.png)
 
