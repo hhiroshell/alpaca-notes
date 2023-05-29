@@ -20,37 +20,56 @@ AppleのエンジニアであるIllya Chekrygin([Github](https://github.com/iche
 イントロダクション
 ---
 
-
+![タイトル](./images/dpdb-p01.png)
 
 ### 発表の要点まとめ
 
-
+- Kubernetes標準のPod Disruption Budget(PDB)ではカバーできないユースケースがあって困っていた
+    - CassandraクラスターをKubernetes上にデプロイして、PDBで保護したいケース
+    - 1つのPodに対して複数のPDBを適用することができない
+- Distributed PDBというカスタムリソース&コントローラーを開発して解決した
+- クラスターを跨いでPDBを効かせるということも可能でアツい
 
 ### このセッションを聴いた個人的なモチベーション
 
+- 普段マルチクラスタなKubernetes環境を運用しており、クラスタを跨いでいい感じにリソースを制御するという技術が気になった（将来役に立つかも）
 
-
-
+:::message
+（宣伝）
+以下の記事で、弊チームとZ Labで開発、運用しているマルチクラスタなプラットフォームをご紹介しています 🙇
+- [ヤフーにおけるKubernetesを活用したPlatform Engineeringの取り組み](https://techblog.yahoo.co.jp/entry/2023052230423347/)
+:::
 
 セッション解説
 ---
+ここからはセッションの中身を、かいつまんで紹介します。
 
 ### Pod Disruption Budget(PDB)ってこんなやつ
+まずはPDBの簡単な復讐。
+
+![](./images/dpdb-p05.png)
+
+- PDBはNamespce Scopedなリソース
+- `maxUnavailable`または`minAvailable`フィールドで、`selector`で選択されたPodのうち同時にevictされてもいい数を指定する
+-
 
 
 
-
-
+![](./images/pdb-p07.png)
 
 
 ### 標準のPDBではカバーできないユースケース
 
-
-
+![](./images/dpdb-p08.png)
 
 
 ### Federated PDBっていうのを考えてみた
 
+![](./images/dpdb-p09.png)
+
+![](./images/dpdb-p10.png)
+![](./images/dpdb-p11.png)
+![](./images/dpdb-p12.png)
 
 
 
