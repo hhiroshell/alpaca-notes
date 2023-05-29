@@ -20,7 +20,7 @@ AppleのエンジニアであるIllya Chekrygin([Github](https://github.com/iche
 イントロダクション
 ---
 
-![タイトル](./images/dpdb-p01.png)
+![タイトル](/images/dpdb-p01.png)
 
 ### 発表の要点まとめ
 
@@ -45,9 +45,9 @@ AppleのエンジニアであるIllya Chekrygin([Github](https://github.com/iche
 ここからはセッションの中身を、かいつまんで紹介します。
 
 ### Pod Disruption Budget(PDB)ってこんなやつ
-まずはPDBの簡単な復讐。
+まずはPDBの簡単な復習。
 
-![](./images/dpdb-p05.png)
+![pdb](/images/dpdb-p05.png)
 
 - PDBはNamespce Scopedなリソース
 - `maxUnavailable`または`minAvailable`フィールドで、`selector`で選択されたPodのうち同時にevictされてもいい数を指定する
@@ -55,21 +55,21 @@ AppleのエンジニアであるIllya Chekrygin([Github](https://github.com/iche
 
 
 
-![](./images/pdb-p07.png)
+![](/images/pdb-p07.png)
 
 
 ### 標準のPDBではカバーできないユースケース
 
-![](./images/dpdb-p08.png)
+![](/images/dpdb-p08.png)
 
 
 ### Federated PDBっていうのを考えてみた
 
-![](./images/dpdb-p09.png)
+![](/images/dpdb-p09.png)
 
-![](./images/dpdb-p10.png)
-![](./images/dpdb-p11.png)
-![](./images/dpdb-p12.png)
+![](/images/dpdb-p10.png)
+![](/images/dpdb-p11.png)
+![](/images/dpdb-p12.png)
 
 
 
