@@ -40,9 +40,10 @@ AppleのエンジニアであるIllya Chekrygin([Github](https://github.com/iche
 - [ヤフーにおけるKubernetesを活用したPlatform Engineeringの取り組み](https://techblog.yahoo.co.jp/entry/2023052230423347/)
 :::
 
+
 セッション解説
 ---
-ここからはセッションの中身を、かいつまんで紹介します。
+ここからはセッションの中身をかいつまんで紹介します。
 
 ### Pod Disruption Budget(PDB)ってこんなやつ
 まずはPDBの簡単な復習。
@@ -50,13 +51,14 @@ AppleのエンジニアであるIllya Chekrygin([Github](https://github.com/iche
 ![pdb](/images/dpdb-p05.png)
 
 - PDBはNamespce Scopedなリソース
-- `maxUnavailable`または`minAvailable`フィールドで、`selector`で選択されたPodのうち同時にevictされてもいい数を指定する
--
-
-
+- `{.spec.maxUnavailable}`または`{.spec.minAvailable}`フィールドで、`{.spec.selector}`で選択されたPodのうち同時にevictされてもいい数を指定する
+- `{.status}`フィールドから、対象のPod群の現在の状況（正常なPod数、期待される正常なPod数など）が分かる
 
 ![](/images/pdb-p07.png)
 
+- Cassandraのクラスターで、Shardのレプリケーション範囲をカバーするPDBを考える
+    - 5レプリカのうち3つにShardを複製するとした場合、3/5のPodに対するPDBを5つ用意することになる
+    - 1つのPodが、複数のPDBの`{.spec.selector}`からマッチしてしまう → このようなPDBは作成できない
 
 ### 標準のPDBではカバーできないユースケース
 
