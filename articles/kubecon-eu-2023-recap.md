@@ -69,7 +69,7 @@ AppleのエンジニアであるIllya Chekrygin([Github](https://github.com/iche
     - 1つのPodに複数のPDBをマッチさせることができない（エラーになる）
     - 拡張性に難がある
 
-### 標準のPDBではカバーできないユースケース
+#### 標準のPDBではカバーできないユースケース
 
 ![CassadraクラスターとPDB](/images/dpdb-p08.png)
 
@@ -79,12 +79,16 @@ AppleのエンジニアであるIllya Chekrygin([Github](https://github.com/iche
 
 ### Federated PDBっていうのを考えてみた
 
+#### Federated PDBの基本アイデア
+
 ![Federated PDBの基本アイデア](/images/dpdb-p09.png)
 
 - 1つのDistributed PDBリソースに対して、1つの子PDB
 - 指定された他のPDB(Federation PDB)の`{.status}`に応じて、子PDBの`{.spec}`を書き換える
     - Federation PDBは複数でもよい
     - Federation PDBは他のDistributed PDBの子PDBでもよい(Bidirectional)
+
+#### CassandraクラスターとFederated PDB
 
 ![CassandraクラスターとFederated PDB](/images/dpdb-p10.png)
 
@@ -98,9 +102,13 @@ AppleのエンジニアであるIllya Chekrygin([Github](https://github.com/iche
     - この図の例では、Distributed PDBを5つapplyし、コントローラーによって子PDBがそれぞれ1つずつ作成される。それぞれのDistributed PDBは他のDPDBの子PDBをFederation PDBとして参照している
     - 1つのレプリカがevictされると、それをFedration PDBとして参照しているPDBのspecを変更して、同じShardがそれ移動evictされないようになる
 
+#### Multi Namespace PDB
+
 ![Multi Namespace PDB](/images/dpdb-p11.png)
 
 - Namespaceを跨いでFederation PDBを指定できる。これによってNamespceを跨いで作用するPDBを実現できる
+
+#### Multi Cluster PDB
 
 ![Multi Cluster PDB](/images/dpdb-p12.png)
 
