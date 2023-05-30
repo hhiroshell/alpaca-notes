@@ -1,5 +1,5 @@
 ---
-title: "KubeCon EU 2023 Recap"
+title: "KubeCon EU 2023 Recap - Distributing and Decentralizing Pod Disruption Budget(PDB)"
 emoji: "🦙"
 type: "tech"
 topics: ["kubernetes", "kubecon"]
