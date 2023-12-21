@@ -107,7 +107,7 @@ spec:
 
 図にするとこんな感じです。
 
-![pod-startup-sequence-1](./images/pod-startup-sequence-1.png)
+![pod-startup-sequence-1](https://raw.githubusercontent.com/hhiroshell/alpaca-notes/master/articles/images/pod-startup-sequence-1.png)
 
 
 実験してみた
@@ -231,7 +231,7 @@ Thu Dec 21 12:17:41 UTC 2023: container1 / liveness probe
 
 図に表すと、以下のような感じです。
 
-![pod-startup-sequence-2](./images/pod-startup-sequence-2.png)
+![pod-startup-sequence-2](https://raw.githubusercontent.com/hhiroshell/alpaca-notes/master/articles/images/pod-startup-sequence-2.png)
 
 
 実装を見てみる
