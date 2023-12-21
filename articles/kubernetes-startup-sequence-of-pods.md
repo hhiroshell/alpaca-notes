@@ -12,9 +12,7 @@ published: true
 
 - 「[Kubernetesマイクロサービス開発の実践](https://www.amazon.co.jp/dp/4295018147/)」
 
-この書籍の第7章には、PodオブジェクトがAPI Serverに作成されてから実際にPodが起動するまでの処理を解説した箇所があるのですが、諸事情のため書籍では載せられなかったマニアックな挙動があります。
-それは、Podに複数のコンテナがあり、いずれかまたはすべてのコンテナでpostStart Lifecycle Hookを使っている場合です。
-このエントリーではそのようなPodが起動するとき、どのような動作になるかを書きます。
+この書籍の第7章には、PodオブジェクトがAPI Serverに作成されてから実際にPodが起動するまでの処理を解説した箇所があるのですが、諸事情のため書籍では載せられなかったマニアックな挙動があります。それは、Podに複数のコンテナがあり、いずれかまたはすべてのコンテナでpostStart Lifecycle Hookを使っている場合です。このエントリーではそのようなPodが起動するとき、どのような動作になるかを書きます。
 
 > 📘【note】
 > これは[Kubernetes Advent Calendar 2023](https://qiita.com/advent-calendar/2023/kubernetes)の20日目の記事です。
@@ -98,14 +96,13 @@ spec:
 
 期待する挙動
 ---
-実験してみる前にどのような動作になるか予想してみましょう。
-おおよそ以下のような感じでしょうか？
+実験してみる前にどのような動作になるか予想してみましょう。おおよそ以下のような感じになるでしょうか...？
 
 1. container1、container2のメインの処理が開始される（Pod内のコンテナの起動順序には依存関係はなさそうに思える）
 2. container1のメインの処理が開始された直後に、postStartフックが開始される
 3. 2. が終了するとReadiness Probe、Liveness Probeが開始される
 
-図にするとこんな感じです。
+この予想を図にすると以下のようになります。2つのコンテナが同時に起動を始めるような形です。
 
 ![pod-startup-sequence-1](https://raw.githubusercontent.com/hhiroshell/alpaca-notes/master/articles/images/pod-startup-sequence-1.png)
 
@@ -123,9 +120,7 @@ startup-sequence-test   1/2     Running             0          37s  <-- 2つの�
 startup-sequence-test   2/2     Running             0          37s  <-- 残りのコンテナがREADYに
 ```
 
-上の`kubectl get pod`の結果を見ると、既に予想に反していそうな雰囲気があります。
-それは、2つのコンテナのどちらも、READYになるまでに37sかかっていることです。
-postStartフックやProbeを設定していないcontainer2については、コンテナが起動すればすぐにREADYになるはずですが…。
+上の`kubectl get pod`の結果を見ると、既に予想に反していそうな雰囲気があります。それは、2つのコンテナのどちらも、READYになるまでに37sかかっていることです。postStartフックやProbeを設定していないcontainer2については、コンテナが起動すればすぐにREADYになるはずですが…。
 
 次にログの出力結果を見てみましょう。
 
@@ -153,17 +148,14 @@ Thu Dec 21 10:41:24 UTC 2023: container1 / readiness probe
 ...
 ```
 
-というわけで、container1とcontainer2のメイン処理はほぼ同時に開始されるという予想でしたが、どうやらcontainer1のpostStartフックが終了するまでcontainer2は開始されないようです。
-前述の予想の1.が外れた結果となりました。
+というわけで、container1とcontainer2のメイン処理はほぼ同時に開始されるという予想でしたが、どうやらcontainer1のpostStartフックが終了するまでcontainer2は開始されないようです。前述の予想の1.が外れた結果となりました。
 
-この結果から、container2の動作の開始はcontainer1のpostStartフックの終了に依存していることになりますが、ではこの依存関係はどうやって決まっているのでしょうか。
-すぐに思いつくのは、Podリソースでコンテナを記述する順序です。
+この結果から、container2の動作の開始はcontainer1のpostStartフックの終了に依存していることになりますが、ではこの依存関係はどうやって決まっているのでしょうか。すぐに思いつくのは、Podリソースでコンテナを記述する順序です。
 
 
 実験2
 ---
-Podリソースにおけるコンテナの順序と、起動時の依存関係を確かめるために、container1とcontainer2の記述順序を逆にして実験をしてみます。
-マニフェストファイルは以下のとおりです。
+Podリソースにおけるコンテナの順序と、起動時の依存関係を確かめるために、container1とcontainer2の記述順序を逆にして実験をしてみます。マニフェストファイルは以下のとおりです。
 
 ```yaml:startup-sequence-test-2.yaml
 apiVersion: v1
@@ -220,9 +212,7 @@ Thu Dec 21 12:17:41 UTC 2023: container1 / liveness probe
 ...
 ```
 
-コンテナがREADYになるタイミングは、最初の実験と同様container1のpostStartフックが終了してからのようです。
-ただし、ログを見る限りcontainer2の処理はすぐに開始されており、続いてcontainer1のメインの処理とpostStartフックが始まっています。
-こちらの場合は、container2がcontainer1のpostStartフックを待っている様子はありません。
+コンテナがREADYになるタイミングは、最初の実験と同様container1のpostStartフックが終了してからのようです。ただし、ログを見る限りcontainer2の処理はすぐに開始されており、続いてcontainer1のメインの処理とpostStartフックが始まっています。こちらの場合は、container2がcontainer1のpostStartフックを待っている様子はありません。
 
 というわけで、Podに複数のコンテナがある場合の起動順序は、以下のようになるものと考えられます。
 
@@ -236,9 +226,7 @@ Thu Dec 21 12:17:41 UTC 2023: container1 / liveness probe
 
 実装を見てみる
 ---
-実験の結果からは上述のような起動順序であると考えられますが、実際にそうなっているのかコードでも確認してみましょう。
-Podの起動を担っているのはkubeletというコンポーネントです。
-kubeletの該当箇所を
+実験の結果からは上述のような起動順序であると考えられますが、実際にそうなっているのかコードでも確認してみましょう。Podの起動を担っているのはkubeletというコンポーネントなので、kubeletのコードから該当箇所を探って行きます。
 
 まず、コンテナの起動を指示する `start()` というしょりを呼び出しているのがこちら。
 
@@ -316,9 +304,7 @@ func (m *kubeGenericRuntimeManager) startContainer(ctx context.Context, podSandb
 
 ```
 
-`Step 4`と示されている箇所でpostStartフックを実行し、処理結果が返ってくるまで待機しているように見えます。
-postStartフックの処理が非同期なものならすぐにStep 4を抜けて後続の処理に進みそうですが、そうでなければここで待ちになるのではないでしょうか。
-すると、最初に示したコードの後続のループ処理、つまり次のコンテナの起動処理に進みません。
+`Step 4`と示されている箇所でpostStartフックを実行し、処理結果が返ってくるまで待機しているように見えます。postStartフックの処理が非同期なものならすぐにStep 4を抜けて後続の処理に進みそうですが、そうでなければここで待ちになるのではないでしょうか。すると、最初に示したコードの後続のループ処理、つまり次のコンテナの起動処理に進みません。
 これが、postStartフックが終了してからコンテナの起動が始まるという動作につながっているようです。
 
 
