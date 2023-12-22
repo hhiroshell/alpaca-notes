@@ -230,7 +230,7 @@ Thu Dec 21 12:17:41 UTC 2023: container1 / liveness probe
 
 まず、コンテナの起動を指示する `start()` という処理を呼び出しているのがこちら。
 
-- https://github.com/kubernetes/kubernetes/blob/master/pkg/kubelet/kuberuntime/kuberuntime_manager.go#L1316-L1318
+- https://github.com/kubernetes/kubernetes/blob/v1.28.5/pkg/kubelet/kuberuntime/kuberuntime_manager.go#L1315-L1317
 
 ```go
 	for _, idx := range podContainerChanges.ContainersToStart {
@@ -242,7 +242,7 @@ Podに記述された複数のコンテナでループして、直列に`start()
 
 次に、`start()`の中身がこちら。
 
-- https://github.com/kubernetes/kubernetes/blob/master/pkg/kubelet/kuberuntime/kuberuntime_manager.go#L1231-L1268
+- https://github.com/kubernetes/kubernetes/blob/v1.28.5/pkg/kubelet/kuberuntime/kuberuntime_manager.go#L1230-L1267
 
 ```go
 	start := func(ctx context.Context, typeName, metricLabel string, spec *startSpec) error {
@@ -262,7 +262,7 @@ Podに記述された複数のコンテナでループして、直列に`start()
 
 `m.startContainer()` の内部の処理は以下のようになっています。
 
-- https://github.com/kubernetes/kubernetes/blob/master/pkg/kubelet/kuberuntime/kuberuntime_container.go#L269-L314
+- https://github.com/kubernetes/kubernetes/blob/v1.28.5/pkg/kubelet/kuberuntime/kuberuntime_container.go#L252-L297
 
 ```go
 func (m *kubeGenericRuntimeManager) startContainer(ctx context.Context, podSandboxID string, podSandboxConfig *runtimeapi.PodSandboxConfig, spec *startSpec, pod *v1.Pod, podStatus *kubecontainer.PodStatus, pullSecrets []v1.Secret, podIP string, podIPs []string) (string, error) {
