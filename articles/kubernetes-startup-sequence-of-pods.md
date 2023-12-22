@@ -228,7 +228,7 @@ Thu Dec 21 12:17:41 UTC 2023: container1 / liveness probe
 ---
 実験の結果からは上述のような起動順序であると考えられますが、実際にそうなっているのかコードでも確認してみましょう。Podの起動を担っているのはkubeletというコンポーネントなので、kubeletのコードから該当箇所を探って行きます。
 
-まず、コンテナの起動を指示する `start()` というしょりを呼び出しているのがこちら。
+まず、コンテナの起動を指示する `start()` という処理を呼び出しているのがこちら。
 
 - https://github.com/kubernetes/kubernetes/blob/master/pkg/kubelet/kuberuntime/kuberuntime_manager.go#L1316-L1318
 
@@ -246,11 +246,11 @@ Podに記述された複数のコンテナでループして、直列に`start()
 
 ```go
 	start := func(ctx context.Context, typeName, metricLabel string, spec *startSpec) error {
-        # ...(snip)...
+		# ...(snip)...
 
 		if msg, err := m.startContainer(ctx, podSandboxID, podSandboxConfig, spec, pod, podStatus, pullSecrets, podIP, podIPs); err != nil {
+			# ...(snip)...
 
-            # ...(snip)...
 			return err
 		}
 
@@ -269,15 +269,15 @@ func (m *kubeGenericRuntimeManager) startContainer(ctx context.Context, podSandb
 	container := spec.container
 
 	// Step 1: pull the image.
-    ...(snip)...
+	...(snip)...
 
 	// Step 2: create the container.
 	// For a new container, the RestartCount should be 0
-    ...(snip)...
+	...(snip)...
 
 	// Step 3: start the container.
 	err = m.runtimeService.StartContainer(ctx, containerID)
-    ...(snip)...
+	...(snip)...
 
 	// Step 4: execute the post start hook.
 	if container.Lifecycle != nil && container.Lifecycle.PostStart != nil {
